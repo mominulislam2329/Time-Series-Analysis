@@ -1,0 +1,339 @@
+---
+title: "| STAT 560: Time Series Analysis \n| Homework 1\n"
+author: "Ajoy Kumar Saha, ID 101011922 and Md Mominul Islam, ID: 101009250"
+date: 'Date: 08/24/2020'
+output:
+  word_document: default
+  fig_caption: yes
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r pressure, echo=FALSE, fig.cap="A caption", out.width = '50%', include=TRUE}
+knitr::include_graphics("C:/Users/sahak/OneDrive/A_PhD_SDSU/2020 Fall/STAT560/STAT560Rcode/HW3.png")
+```
+
+```{r, include=FALSE}
+# *************************Installation packages and load data********************************
+# Installed packages
+
+# install.packages("readxl")
+# install.packages("ggplot2") # I already have ggplot2, if you haven't yet packages then run this code by erasing hass at begaining 
+
+library(ggplot2)
+library(readxl)
+
+# Set directory for data file
+
+# load data Table B.4 for Exercise 2.2
+AppendixB_4 <- read_excel("AppendixB_datafile.xls", 
+    sheet = "B.4-BLUE", col_names = T, skip = 3)
+
+# change data format as data frame
+my.data1 <- as.data.frame(AppendixB_4)
+colnames(my.data1) # Check the column name then replaced with suitable one
+colnames(my.data1) = c("Year", "Production") # column name changed into a small and suitable one, which is easy to type in coding
+
+# load data Table B.6 for Exercise 2.2
+AppendixB_10 <- read_excel("AppendixB_datafile.xls", 
+        sheet = "B.10-FLOWN", col_names = T, skip = 3)
+# change data format as data frame
+my.data2 <- as.data.frame(AppendixB_10)
+colnames(my.data2) # Check the column name then replaced with suitable one
+colnames(my.data2) = c("Month", "Miles") # column name changed into a small and suitable one, which is easy to type in coding
+colnames(my.data2)
+
+# *********************************************************************************************
+# Function Variogram estimation by using define a function variogram
+# Purpose : Define a function variogram
+# Input   : Time series data set 
+# Output  : Variogram (lag value and respective variogram value)
+# ********************************************************************************************
+variogram <- function (x, lag ){
+    Lag <- NULL
+    vark <- NULL
+    vario <- NULL
+  for (k in 1: lag ){
+    Lag[k] <- k
+    vark [k] = sd( diff (x,k ))^2
+  vario [k] = vark [k]/ vark [1]
+  }
+return (as.data.frame( cbind (Lag , vario )))
+}
+#*********************************************************************************************
+```
+
+
+### Exercise 2.2 b
+Consider the data on US production of blue and gorgonzola cheeses in Table B.4.
+  b. Take the first difference of the time series, then find the sample autocorrelation function and the variogram. What conclusions can you draw about the structure and behavior of the time series?
+
+
+Answer: 
+It seems that the trend is non-stationary for the US production of blue and gorgonzola cheeses. 
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Figure 1: Variation of US blue and gorgonzola cheeses production from 1950-1997. The red dot line shows the fitted regression line.", fig.align='center'}
+
+p <- ggplot (my.data1, aes(x= Year, y=Production))
+p + geom_point()+
+  geom_line()+
+  geom_smooth(method = "lm", se= FALSE, col="red", linetype = 2)+
+  labs(x = "Year", y = "Production, 10000lb", title = "Variation of US cheeses production from 1950 -1997")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.2), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.2)),
+        legend.position = "bottom")
+
+```
+
+
+```{r, echo=FALSE, include=FALSE}
+# Prepare new data set with 1d to remove the trend
+nrc<-dim(my.data1)[1] # Number of row in my data here 1 for row and we can use 2 for number of column
+                      # and we can also get number of column by dim(my.data1)[2]
+
+my.data1[2:nrc,1]     # Check the data for row second to end of number of row(48 number row), only for
+                      # column 1. Here we will get 47 number data    
+
+
+diff(my.data1[,2])   # get the difference of data for colum 2, it usually create the difference of
+                     # consecutive value only, here we have 48 row and 48 data, if we get difference
+                     # of consecutive data, so we will have 47 number difference 
+
+# Now combine above data and stored in two colum in new data name: dmy.data1
+dmy.data1<-cbind(my.data1[2:nrc,1],diff(my.data1[,2]))
+
+dmy.data1 <- as.data.frame(dmy.data1)
+
+# Linear regression model is created for new data series to check the relation with time. We expect that the fit line will be almost horizontal line so there is no trend and therefore generated residual will follow normal distribution.
+dmy.data1_fit <- lm(V2 ~ V1, data = dmy.data1)  # Fit the model
+summary(dmy.data1_fit)  # Report the results
+```
+
+
+
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Figure 2: Variation of US cheeses production from 1950 -1997 after taking differences of d=1. The red dot line shows the fitted regression line.", fig.align='center'}
+
+
+# plot the time series with trend over time for d=1
+p <- ggplot (dmy.data1, aes(x= V1, y=V2))
+p + geom_point()+
+  geom_line()+
+  geom_smooth(method = "lm", se= FALSE, col="red", linetype = 2)+
+  labs(x = " ", y = "Cheeses Production, d =1", title = "Variation of US cheeses production from 1950 -1997 for d=1")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.2), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.2)),
+        legend.position = "bottom")
+
+```
+
+```{r, echo=FALSE, fig.cap="Figure 3: Sample Autocorrelation funciton (ACF) for the US production of blue and gorgonzola cheeses for 1950 -1997 after taking difference of d=1", fig.align='center'}
+
+# Autocorrelation function code
+acf(dmy.data1[,2], lag.max=47,type="correlation", main=" ", ylab= "Autocorrelation")
+
+```
+
+
+```{r, include=FALSE}
+
+# call variogram funciton for my.data [,2]; for column two
+
+variogram_production <- as.data.frame(variogram(dmy.data1[,2], length (dmy.data1[ ,2])/2))
+dim(variogram_production)
+plot(variogram_production)
+
+```
+
+
+```{r, echo=FALSE, fig.cap="Figure 4: variogram for the US production of blue and gorgonzola cheeses for 1950 -1997 after taking difference of d=1", fig.align='center'}
+
+ggplot(variogram_production, aes(x=Lag, y=vario))+
+  geom_col() +
+  coord_flip()+
+  labs(x = "Lag", y = "Variogram", title = "Variogram of US cheeses production for d=1")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.2), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.2)),
+        legend.position = "bottom")
+```
+
+
+
+```{r, echo=FALSE, fig.cap="Figure 5: Liner model's residual plot for US production of cheeses after taking difference of d=1", fig.align='center'}
+
+par(mfrow=c(2,2))
+
+qqnorm(dmy.data1_fit$res,datax=TRUE,pch=16,xlab='Residual',main='')
+
+qqline(dmy.data1_fit$res,datax=TRUE)
+plot(dmy.data1_fit$fit,dmy.data1_fit$res,pch=16, xlab='Fitted Value',
+ylab='Residual')
+abline(h=0)
+hist(dmy.data1_fit$res,col="gray",xlab='Residual',main='')
+plot(dmy.data1_fit$res,type="l",xlab='Observation Order',
+ylab='Residual', col="red")
+points(dmy.data1_fit$res,pch=16,cex=.5)
+abline(h=0)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Exercise 2.11
+Reconsider the data on the number of airline miles flown in the United Kingdom from Exercise 2.10. Take the natural logarithm of the data and plot this new time series.
+  a. What impact has the log transformation had on the time series?
+  b. Find the autocorrelation function for this time series.
+  c. Interpret the sample autocorrelation function.
+
+Answer: 
+It seems that the trend is non-stationary having seasonal variation for the number of airline miles flown in the United Kingdom. 
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Figure 6: Variation of the number of airline miles flown in the United Kingdom. The red dot line shows the fitted regression line.", fig.align='center'}
+
+p <- ggplot (my.data2, aes(x= Month, y=Miles))
+p + geom_point()+
+  geom_line()+
+  geom_smooth(method = "lm", se= FALSE, col="red", linetype = 2)+
+  labs(x = "Time", y = "Miles Flown, in Millions", title = "Variation of monthly number of airline miles flown in the United Kingdom")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.2), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.2)),
+        legend.position = "bottom")
+
+```
+
+```{r, include=F}
+#Transform data by natural log***************************************************************
+my.data2[,2]
+my.data2[,3] <- logb(my.data2[,2], base = exp(1))
+my.data2[,3]
+colnames(my.data2) = c("Month", "Miles", "ln_Miles") 
+```
+
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Figure 7: Variation of the number of airline miles flown in the United Kingdom after natural log transform. The red dot line shows the fitted regression line.", fig.align='center'}
+
+p <- ggplot (my.data2, aes(x= Month, y=ln_Miles))
+p + geom_point()+
+  geom_line()+
+  geom_smooth(method = "lm", se= FALSE, col="red", linetype = 2)+
+  labs(x = "Time", y = "ln(Miles in Millions)", title = "Variation of monthly number of airline miles flown in the United Kingdom")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.2), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.2)),
+        legend.position = "bottom")
+
+```
+
+
+```{r, echo=FALSE, fig.cap="Figure 8: Sample Autocorrelation funciton (ACF) for the number of airline miles flown in the United Kingdom after natural log transform", fig.align='center'}
+
+# Autocorrelation function code
+acf(my.data2[,3], lag.max=42,type="correlation", main=" ", ylab= "Autocorrelation")
+# here column 3 data is use to get ACF becasue, in column 3, the log transformed data has been stored
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Exercise 2.12
+Reconsider the data on the number of airline miles flown in the United Kingdom from Exercises 2.10 and 2.11. Take the first difference of the natural logarithm of the data and plot this new time series.
+  a. What impact has the log transformation had on the time series?
+  b. Find the autocorrelation function for this time series.
+  c. Interpret the sample autocorrelation function.  
+
+
+
+
+
+
+```{r, echo=F, include=F}
+# Prepare new data set with 1d
+nrc<-dim(my.data2)[1] # Number of row in my data here 1 for row and we can use 2 for number of column
+                      # and we can also get number of column by dim(my.data1)[2]
+
+Time <- my.data2[2:nrc,1]     # Check the data for row second to end of number of row(48 number row), only for
+                      # column 1. Here we will get 47 number data    
+
+
+Differences <- diff(my.data2[,3])   # get the difference of data for colum 2, it usually create the difference of
+                     # consecutive value only, here we have 48 row and 48 data, if we get difference
+                     # of consecutive data, so we will have 47 number difference 
+
+# as.Date.default()
+# Now combine above data and stored in two colum in new data name: dmy.data1
+dmy.data2<-cbind.data.frame(Time, Differences)
+
+# dmy.data2 <- as.data.frame(dmy.data2)
+
+# Linear regression model is created for new data series to check the relation with time. We expect that the fit line will be almost horizontal line so there is no trend and therefore generated residual will follow normal distribution.
+dmy.data2_fit <- lm(Differences ~ Time, data = dmy.data2)  # Fit the model
+summary(dmy.data2_fit)  # Report the results
+```
+
+
+
+
+
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Figure 9: Variation of the number of airline miles flown in the United Kingdom after natural log transform and taking differences for d=1. The red dot line shows the fitted regression line.", fig.align='center'}
+# plot the time series with trend over time for d=1
+p <- ggplot (dmy.data2, aes(x= Time, y=Differences))
+p + geom_point()+
+  geom_line()+
+  geom_smooth(method = "lm", se= FALSE, col="red", linetype = 2)+
+  labs(x = " ", y = "ln (Miles Flown, in millions), d =1", title = " ")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.2), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.2)),
+        legend.position = "bottom")
+
+```
+
+
+
+
+```{r, echo=FALSE, fig.cap="Figure 10: Sample Autocorrelation funciton (ACF) for the number of airline miles flown in the United Kingdom after log transform and d=1", fig.align='center'}
+
+# Autocorrelation function code
+acf(dmy.data2[,2], lag.max=42,type="correlation", main=" ", ylab= "Autocorrelation")
+# in ACF we use 2 column data. Because, after taking difference the d=1, data is stored in 2nd column of dmy.data
+```
+
