@@ -1,0 +1,294 @@
+---
+title: "STAT 560: Time Series Analysis \n Homework 6 (Chapter 5)"
+author: "Ajoy Kumar Saha, ID 101011922 and Md Mominul Islam, ID: 101009250"
+date: 'Date: 11/13/2020'
+output:
+  word_document: default
+  fig_caption: yes
+  html_document:
+    df_print: paged
+  pdf_document: default
+  subtitle: Homework 6
+  header-includes: \usepackage{color}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE, message=FALSE}
+# *************************Installation packages and load data********************************
+# install.packages("readxl")
+# install.packages("ggplot2") # I already have ggplot2, if you haven't yet packages then run this code by erasing hash at beginning 
+#install.packages("dplyr")
+#install.packages("plotly")
+#install.packages("hrbrthemes")
+# install.packages("smooth")
+library(ggplot2)
+library(readxl)
+library(smooth)
+library(tinytex)
+
+# HW6: Due: 11:59 PM, Friday, Nov 13th.
+# Do Exercise 5.2 a), 5.2 b), 5.5, 5.7, 5.8. 
+
+# Set directory for data file
+Exercise5_2 <- read_excel("Exercise5_2.xlsx")
+
+my.data1 <- as.data.frame(Exercise5_2) # change data format as data frame
+
+colnames(Exercise5_2) # Check the column name then replaced with suitable one
+#*********************************************************************************************
+```
+
+
+
+
+### Exercise 5.2 (a) Consider the time series data shown in Table E5.1.
+
+a. Make a time series plot of the data.
+
+Answer:
+
+The following figure shows the time series plot of y_t over the time period. It seems that this time series is a constant process data and varies with a constant mean of 29 (or close to 30).
+
+```{r}
+ggplot(data=my.data1)+
+  geom_line (aes(x=Period, y = yt))+
+  geom_point (aes(x=Period, y = yt))+
+  theme_classic()+
+labs(x = "Period",
+    y = "yt",
+    title = "Time Series plot for 5.2(a)")
+
+```
+
+
+
+
+### Exercise 5.2 (b)
+
+b. Calculate and plot the sample autocorrelation and PACF. Is there significant autocorrelation in this time series?
+
+Answer:
+
+The following table show the calculated value of ACF and PACF values for this given time series data. The following two plots show the sample ACF and PACF for different lag k. Yes, there is a significant autocorrelation in this time series because the ACF values are quickly reduced to zero and later ACF values are almost varies within the boundary limit (except ACF for lag 4). So therefore, we can say this is a stationay time series with cut off at 1. Whereas PACF shows unstable autocorrelation as the valuse are several time going outside of the limit.
+
+
+
+```{r}
+par(mfrow=c(1,2),oma=c(0,0,0,0))
+my.data1.acf <- acf(my.data1[,2],lag.max=25,type="correlation",main="ACF for the time series")
+my.data1.pacf <- acf(my.data1[,2],lag.max=25,type="partial",main="PACF for the time series")
+
+Table1 <- NULL
+Table1$Lag <- seq(1,25,1)
+Table1$ACF <- my.data1.acf$acf[2:26]
+Table1$PACF <- my.data1.pacf$acf
+Table1 <- as.data.frame(Table1)
+Table1
+```
+
+
+
+\pagebreak
+
+### Exercise 5.5 Consider the time series model
+
+y_t = 150 − 0.5y_t−1 + 𝜀_t
+
+a. Is this a stationary time series process?
+
+Answer:
+
+
+
+Here, y_t=150-0.5y_(t-1)+ϵ_t is the given time series model. From this model's equation, we can say that this is First Order AR(1) process because it looks like general form of y_t=δ+ϕy_(t-1)+ϵ_t Where, δ=150, ϕ= -0.5. As |ϕ|< 1 , So this time series is stationary.
+
+
+```{r}
+# mean of the stationary AR(1) process 150/(1-(-0.5))=100
+data_ar = arima.sim(list(order=c(1,0,0), ar = -0.5),n=103)+100 
+
+# Plot of my time series
+ts.plot(data_ar, type="o", ylab = expression(~~y_t), main= "Time Series plot for AR(1) process")
+
+```
+
+The above plot shows of given the time series. It also shows that y_t values are randomly plotted around the constant value (mean) of 100. It also indicates that time series is stationary.
+
+
+b. What is the mean of the time series?
+
+Answer:
+
+The mean of the stationary AR(1) process is:
+
+E(y_t ) = μ = δ/(1-ϕ) = 150/(1-(-0.5)) = 100
+
+
+c. If the current observation y100 = 85, Would you expect the next observation to be above or below the mean?
+
+Answer: 
+
+Given Equation,  
+y_t=150-0.5y_(t-1)+ϵ_t⋯⋯⋯(1)  
+
+From, equation (1), it is observaing that the time series value of next step is negatively correlated with current step (see that time series plot in 5.5a). That means, the next value will be high if the current values is small. And the next value will be small if the current values is high. See plot 5.5a, there is a lot of ups and downs in time series plot. 
+
+Therefore, we can expect that the next observation (y_101) will be above the mean value (μ = 100) as the y_100 is smaller than mean.
+
+
+Lets try another way, y_100=85,Putting the value in equation(1)
+
+The observation will be y_100+1 = y_101. We get:
+                         y_101 = 150 - 0.5 y_100 + ϵ_101  
+                     or, y_101 = 150-0.5*85 + ϵ_101
+                               = 107.5 + ϵ_101
+
+
+From the above equation, we can expect the next (y_101) will be depends on the error of 101th value. But it is absence.However, we can expect that y_101 value will more than 100.
+
+
+
+
+\pagebreak
+
+
+### Exercise 5.7 Consider the time series model
+
+yt = 20 + 𝜀t + 0.2𝜀t−1
+
+a. Is this a stationary time series process?
+
+Answer:
+
+Given time series model equaition is  y_t=20+ϵ_t+0.2ϵ_(t-1). From this equation, we can say that this is the first order MA(1) process because it follows the general equation of y_t=μ+ϵ_t-θϵ_(t-1). Where, μ= 20,θ =-0.2. We know that, any finite order moving average process (MA(q) is always stationary regardless of values of the weights.So, we can say that MA(1) process is stationary.
+
+
+As |θ| < 1, so, the time series is stationary.
+
+```{r}
+#Model equation: y_t=20+ϵ_t+0.2ϵ_(t-1)
+#list description for MA(1) model with weight
+data_ma <- list(order=c(0,0,1), ma = -0.2, sd = 0.1)
+#simulate MA(1)
+MA1_process <- arima.sim(n= 105, model = data_ma) +20
+
+#plot the time series
+ts.plot(MA1_process, type= "o", ylab = expression(italic(y)[italic(t)]), main= expression(paste(theta, "= -0.2")))
+
+nlag= 10
+acf_madata <- ARMAacf(ma= -0.2, lag.max= nlag)
+plot(0:nlag, acf_madata, type= "h", xlab= "lag", main= (expression(ACF~ MA(1)~~~ theta== -0.2)))
+abline(h= 0)
+```
+
+The above plot shows the time series for y_t=20+ϵ_t+0.2ϵ_(t-1) and its ACF. It also shows that y_t values are randomly plotted around the constant value (mean) of 20. It also indicates that this time series is stationary.
+
+
+
+b. Is this an invertible time series?
+
+Answer:
+
+Yes, this is an invertible time series. From the model equation, we find that |θ1| < 1, So time series is invertible.
+
+
+c. What is the mean of the time series?
+
+Answer:
+
+Mean value, μ=20
+
+
+
+d. If the current observation is y100 = 23, would you expect the next observation to be above or below the mean? Explain your answer.
+
+Answer:
+
+From the model equation and time series plot in 5.7a, we see that there are lots of ups and downs in data. Expecially for large and small values, having highest error from mean, gives more fluctuations. In this case, the given y_100 = 23, which is larger value and have large deviation from mean. Therefore, next observation will fluctuate more (gives a down), so that we would expect the next observation will be below the value (23). Now, for more precise statement respect to mean, we have generates two plots. One is difference of time series and error or deviation from mean. We found that maximum deviation from consecutive y is 5.173763 and maximum deviation from mean is 2.954709. Now it becomes tough to conclue that the position of next obseration. It seems that the y_101 would have value below the mean (20). 
+
+
+```{r}
+Difference1 <- diff(MA1_process)
+plot (Difference1, type = "o", main = "Differerence y_t values from previous values")
+Error1 <- MA1_process - 20
+plot (Error1, type = "o", main = "Deviation of y_t values from mean")
+abline(h=0)
+max(Difference1)
+max(Error1)
+```
+
+
+
+
+\pagebreak
+
+
+
+
+
+
+### Exercise 5.8 Consider the time series model
+
+yt = 50 + 0.8yt−1 + 𝜀t − 0.2𝜀t−1
+
+a. Is this a stationary time series process?
+
+Answer:
+
+This time series is a mixture of AR and MA process. This is basically ARMA(1,1) and follow the general equation of equation, y_t-ϕ_1 y_(t-1)=δ+ϵ_t-θ_1 ϵ_(t-1). Here, ϕ1= 0.8. As |ϕ1|< 1 , So the time series is stationary.
+
+```{r}
+sim <- arima.sim(list(ar = 0.8,ma=0.2), n = 200)+ 250
+ts.plot(sim, ylab="y_t", main="Time series plot",type="o")
+```
+
+
+For the visual inspection, we have plot the time series in above figure. It also shows that y_t values are randomly plotted around the constant value (mean) of 250. It also indicates that this time series is stationary.
+
+
+b. What is the mean of the time series?
+
+Answer:
+
+The mean of the time series is μ = δ/(1-ϕ1) = 50/(1-0.8)) =250
+
+
+c. If the current observation is y100 = 270, would you expect the next observation to be above or below the mean?
+
+
+See the time series plot in 5.8a for the model yt = 50 + 0.8yt−1 + 𝜀t − 0.2𝜀t−1
+. It seems that yt values are increasing gradually upto certain range and again decresing up to certain ranage. But this ups and downs are not quick at all (see the below figure of deviation of yt value from mean).
+
+It alos seems that yt has the positive corelation with prevous value and negative correlation with previous error.
+
+Therefore, y100 = 270 and next (y101) observation, we would expect above the mean (250). It will not reduce drastically and will not pass mean (250).
+
+```{r}
+# Define an ARMA(1,1) function
+# Error term
+Error2 <- sim - 250
+plot (Error2, type = "o", main = "Deviation of y_t values from mean")
+abline(h=0)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
