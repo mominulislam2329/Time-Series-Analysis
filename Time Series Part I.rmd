@@ -1,0 +1,258 @@
+---
+title: "| STAT 560: Time Series Analysiss"
+author: " Md Mominul Islam, ID: 101009250"
+date: 'Date: 08/24/2020'
+output:
+  html_document:
+    df_print: paged
+  fig_caption: yes
+  pdf_document: default
+  word_document: default
+---
+
+
+```{r setup, include=FALSE}
+#***********************************************Homework*************************************
+# HW 2
+# Due to 11:59 PM on Friday, Sep 4th. You can use either RmarkDown or JMP to do the exercises. 
+# For Stat 460: Chapter2: Ex2.2(a), Ex2.3.
+# For Stat 560: Chapter2: Ex2.2 (a), Ex2.4. 
+#*********************************************************************************************
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, include=FALSE}
+# *************************Installation packages and load data********************************
+# Installed packages
+# install.packages("readxl")
+# install.packages("ggplot2") # I already have ggplot2, if you haven't yet packages then run this code by erasing hass at begaining 
+
+library(ggplot2)
+library(readxl)
+
+# Set directory for data file
+# load data Table B.4 for Exercise 2.2
+AppendixB_4 <- read_excel("AppendixB_datafile.xls", 
+    sheet = "B.4-BLUE", col_names = T, skip = 3)
+# change data as data frame
+my.data <- as.data.frame(AppendixB_4)
+colnames(my.data) # Check the column name then replaced with suitable one
+colnames(my.data) = c("Year", "Production") # column name changed into a small and suitable one, which is easy to type in coding
+
+# load data Table B.6 for Exercise 2.2
+AppendixB_6 <- read_excel("AppendixB_datafile.xls", 
+    sheet = "B.6-GSAT-CO2", col_names = T, skip = 3)
+# change data as data frame
+my.data2 <- as.data.frame(AppendixB_6)
+colnames(my.data2) # Check the column name then replaced with suitable one
+colnames(my.data2) = c("Year", "Anomaly","CO2" ) # column name changed into a small and suitable one, which is easy to type in coding
+colnames(my.data2)
+
+# Define a function variogram
+# Variogram estimation by using define a function variogram
+variogram <- function (x, lag ){
+    Lag <- NULL
+    vark <- NULL
+    vario <- NULL
+  for (k in 1: lag ){
+    Lag[k] <- k
+    vark [k] = sd( diff (x,k ))^2
+  vario [k] = vark [k]/ vark [1]
+  }
+return (as.data.frame( cbind (Lag , vario )))
+}
+
+#*********************************************************************************************
+```
+
+
+### Exercise 2.2
+Consider the data on US production of blue and gorgonzola cheeses in Table B.4.
+  a. Find the sample autocorrelation function and the variogram for these data. Is the time series stationary or nonstationary?
+
+Answer: 
+It seems that the trend is stationary for the US production of blue and gorgonzola cheeses. 
+
+```{r, echo=FALSE, fig.cap="Figure 1: Variation of US blue and gorgonzola cheeses production from 1950 -1997. The red dot line shows the fitted regression line.", fig.align='center'}
+
+p <- ggplot (my.data, aes(x= Year, y=Production))
+p + geom_point()+
+  geom_line()+
+  geom_smooth(method = "lm", se= FALSE, col="red", linetype = 2)+
+  labs(x = "Year", y = "Production, 10000lb", title = "Variation of US cheeses production from 1950 -1997")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.5)),
+        legend.position = "bottom")
+
+```
+
+
+
+```{r, echo=FALSE, fig.cap="Figure 2: Histogram of US blue and gorgonzola cheeses production for 1950 -1997", fig.align='center'}
+
+ggplot(my.data, aes(x = Production))+
+  geom_histogram(bins = 10, color="black", fill="white")+
+  labs(x = "Year", y = "Frequency", title = "Histogram of US cheeses production")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.5)),
+        legend.position = "bottom")
+
+```
+
+
+```{r, echo=FALSE, fig.cap="Figure 3: Sample Autocorrelation funciton (ACF) for the US production of blue and gorgonzola cheeses for 1950 -1997", fig.align='center'}
+
+# Autocorrelation function code
+acf(my.data[,2], lag.max=48,type="correlation", main="ACF of US production of blue and gorgonzola cheeses", ylab= "Autocorrelation")
+
+```
+
+Conclusion: As we know that a time series can be called stationary if the mean is fixed and the variance is a constant number. From the ACF plot depicted above, we can clearly say that, this time series is not stationary as the value of ACF were not decreased to zero over time. In addition, there is no presence of mild sinusoidal pattern.
+
+
+```{r, include=FALSE}
+
+# call variogram funciton for my.data [,2]; for column two
+
+variogram_production <- as.data.frame(variogram(my.data[,2], length (my.data[ ,2])/4))
+
+```
+
+```{r, echo=FALSE, fig.cap="Figure 4: variogram of US blue and gorgonzola cheeses production for 1950 -1997", fig.align='center'}
+
+ggplot(variogram_production, aes(x=Lag, y=vario))+
+  geom_col()+
+  labs(x = "Lag", y = "Variogram", title = "Variogram of US cheeses production")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.5)),
+        legend.position = "bottom")
+```
+
+Conclusion: If we are unable to predict the data to be either stationary or not by means of ACF, then we can analyze further with the help of variogram analysis. If the variogram varies around a constant number then we can say that, time series is stationary. From the obtained value of variogram, we can clearly say that the values of variogram were increased over time. So, the time series is not stationary.
+
+We have got similar results using JUMP software. From ACF value, we assumed that time series was weakly stationary but with further analysis with Variogram, we came to a clear conclusion that, this is a non-stationary time series. 
+
+
+
+
+### Exercise 2.4
+Table B.6 contains two time series: the global mean surface air temperature anomaly and the global CO2 concentration. Find the sample autocorrelation function and the variogram for both of these time series. Is either one of the time series stationary?
+
+
+```{r, echo=FALSE, fig.cap="Figure 5: Variation of the global mean surface air temperature anomaly in oC from 1880 -2004. The red dot line shows the fitted regression line.", fig.align='center'}
+
+p <- ggplot (my.data2, aes(x= Year, y=Anomaly))
+p + geom_point()+
+  geom_line()+
+  geom_smooth(method = "lm", se= FALSE, col="red", linetype = 2)+
+  labs(x = "Year", y = "Production, 10000lb", title = "Variation of Global air temperature anomaly")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.5)),
+        legend.position = "bottom")
+
+```
+
+```{r, echo=FALSE, fig.cap="Figure 6: Histogram of Global air temperature anomaly", fig.align='center'}
+
+ggplot(my.data2, aes(x = Anomaly))+
+  geom_histogram(bins = 10, color="black", fill="white")+
+  labs(x = "Year", y = "Frequency", title = "Histogram of air temperature anomaly")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.5)),
+        legend.position = "bottom")
+
+```
+
+```{r, echo=FALSE, fig.cap="Figure 7: Sample Autocorrelation funciton (ACF) for the global surface temperature anomaly for 1880 -2004", fig.align='center'}
+# Autocorrelation function code
+acf(my.data2[,2], lag.max=length (my.data2[ ,2])/4,type="correlation", main="ACF of global temp anomaly")
+```
+
+Conclusion: As we know that a time series can be called stationary if the mean is fixed and the variance is a constant number. From the ACF plot depicted above, we can clearly say that this time series is stationary as the value of ACF were decreased to zero over time.  In addition, there is a presence of mild sinusoidal pattern which is one of the criteria of a typical time series plot.
+
+
+```{r, include=FALSE}
+
+# call variogram funciton for my.data [,2]; for column two
+variogram_Anomaly <- as.data.frame(variogram(my.data2[,2], length (my.data2[ ,2])/4))
+
+```
+
+```{r, echo=FALSE, fig.cap="Figure 8: variogram of the global surface temperature anomaly", fig.align='center'}
+
+ggplot(variogram_Anomaly, aes(x=Lag, y=vario))+
+  geom_col()+
+  labs(x = "Lag", y = "Variogram", title = "Variogram of US cheeses production")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.5)),
+        legend.position = "bottom")
+```
+
+Conclusion: If we are unable to predict the data to be either stationary or not by means of ACF, then we can analyze further with the help of variogram analysis. If the variogram varies around a constant number then we can say that, time series is stationary. From the obtained value of variogram, we can clearly say that the values of variogram were constant over time. So, the time series is stationary.
+
+We have got similar results using JUMP software. From ACF value, we assumed that time series was stationary and with further analysis with Variogram, we came to a clear conclusion that, this is a stationary time series. 
+
+
+
+```{r, echo=FALSE, fig.cap="Figure 9: Variation of the global CO2 concentration from 1880 -2004. The red dot line shows the fitted regression line.", fig.align='center'}
+
+p <- ggplot (my.data2, aes(x= Year, y=CO2))
+p + geom_point()+
+  geom_line()+
+  geom_smooth(method = "lm", se= FALSE, col="red", linetype = 2)+
+  labs(x = "Year", y = "Production, 10000lb", title = "Variation of the global CO2 concentration")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.5)),
+        legend.position = "bottom")
+
+```
+
+```{r, echo=FALSE, fig.cap="Figure 10: Histogram of the global CO2 concentration", fig.align='center'}
+
+ggplot(my.data2, aes(x = CO2))+
+  geom_histogram(bins = 10, color="black", fill="white")+
+  labs(x = "Year", y = "Frequency", title = "Histogram of the global CO2 concentration")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.5)),
+        legend.position = "bottom")
+
+```
+
+```{r, echo=FALSE, fig.cap="Figure 11: Sample Autocorrelation funciton (ACF) for the the global CO2 concentration", fig.align='center'}
+# Autocorrelation function code
+acf(my.data2[,3], lag.max=length (my.data2[ ,3])/4,type="correlation", main="ACF of global CO2 concentration")
+```
+
+Conclusion: As we know that a time series can be called stationary if the mean is fixed and variance is a constant number. From the ACF plot depicted above, we can clearly say that this time series is not stationary as the value of ACF were not decreased to zero over time. In addition, there is no presence of mild sinusoidal pattern. 
+
+```{r, include=FALSE}
+
+# call variogram funciton for my.data [,2]; for column two
+variogram_CO2 <- as.data.frame(variogram(my.data2[,3], length (my.data2[ ,3])/4))
+
+```
+
+```{r, echo=FALSE, fig.cap="Figure 12: variogram of US blue and gorgonzola cheeses production for 1950 -1997", fig.align='center'}
+
+ggplot(variogram_CO2, aes(x=Lag, y=vario))+
+  geom_col()+
+  labs(x = "Lag", y = "Variogram", title = "Variogram of US cheeses production")+
+  theme_classic()+
+  theme(plot.title = element_text(size = rel(1.5), face = "bold", hjust = 0.5),
+        axis.title = element_text(size = rel(1.5)),
+        legend.position = "bottom")
+```
+
+Conclusion: If we are unable to predict the data to be either stationary or not by means of ACF, then we can analyze further with the help of variogram analysis. If the variogram varies around a constant number then we can say that, time series is stationary. From the obtained value of variogram, we can clearly say that the values of variogram were increased over time. So, the time series is not stationary.
+
+We have got similar results using JUMP software. From ACF value, we assumed that time series was not stationary and with further analysis with Variogram, we came to a clear conclusion that, this is a non-stationary time series. 
+
