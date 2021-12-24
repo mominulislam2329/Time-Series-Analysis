@@ -1,0 +1,373 @@
+---
+title: "Time Series Analysis"
+author: "Md Mominul Islam"
+date: "12/3/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**1. (5 points) Plot the crime rate data vs the year.**
+
+**Answer**
+
+```{r, echo = FALSE}
+#Loading Required Library
+library(ggplot2)
+library(leaps)
+library(car)
+library(tinytex)
+library(dplyr)
+library(forecast)
+library(readxl)
+#library(DMwR)
+library(knitr)
+
+#Loading Required Dataset
+library(readxl)
+Final_data <- read_excel("/Users/mominul/OneDrive - South Dakota State University - SDSU/DATA SCIENCE/Fall 2020/TIME SERIES_MOMINUL/Final_data.xlsx", skip = 4)
+```
+
+
+```{r}
+Final_data <- as.data.frame(Final_data)
+
+#Ploting Crime Rate Data vs The Year
+plot(Final_data[,2],type="o",pch=19,cex=0.8,xlab='Year',
+     xlim=c(1,23),xaxt= 'n', ylab='Crime Rate',
+     main= "Crime Rate Data vs The Year")
+axis(1, seq(1,22,1), Final_data[seq(1,22,1),1])
+```
+
+**2. (10 points) Calculate and plot the sample autocorrelation function (ACF) and variogram. List the first 10 values of ACF and variogram respectively.**
+
+**Answer**
+
+```{r}
+
+# Defining the variogram function
+variogram_func <- function(x, lag) {
+x <- as.matrix(x) # Make sure the x is a vector. It represents the observations of y_t.
+Lag <- NULL
+var_k <- NULL
+vario <- NULL
+for (k in 1:lag) {
+Lag[k] <- k
+var_k[k] <- sd(diff(x, k))^2
+vario[k] <- var_k[k] / var_k[1]
+}
+return(as.data.frame(cbind(Lag, vario)))
+}
+
+#calculating ACF
+ACF_Final_data <-acf(Final_data[,2], lag.max=25,type="correlation")
+#calculating Variogram
+x <- Final_data$Rate
+lag_length <- length(x) /2
+lag_cheese <- 1:lag_length
+z <- variogram_func(x, lag_length)
+variogram_Final_data <- z$vario
+#Ploting Variogram 
+plot(variogram_Final_data, type="o", 
+     main="Variogram_original data", pch=19,cex=.8, col="black" )
+
+#Table for ACF and Variogram
+ACF <- ACF_Final_data$acf[1:10]
+Variogram <- variogram_Final_data[1:10]
+Variogram <- as.data.frame(Variogram)
+
+Table <- data.frame (
+  ACF,
+  Variogram
+)
+kable(Table,
+      caption = 'ACF and Variogram')
+```
+**3. (5 points) Is there an indication of nonstationary behavior in the time series? Why or why not?**
+
+**Answer**
+
+
+**4. (10 points) Calculate and plot the first difference of the timeseries. Show the first 10 differences.**
+
+**Answer**
+
+```{r}
+#Calculating First Difference Data
+Final_data.df1 <- diff(Final_data[,2])
+#Plotting First Difference Data
+plot(Final_data.df1, type="o",pch=19,cex=0.8,xlab='Year',
+     xlim=c(1,23), xaxt= 'n', ylab='Crime Rate', 
+     main= "Crime Rate vs Year after Taking First Difference")
+axis(1, seq(1,22,1), Final_data[seq(1,22,1),1])
+
+#Showing First 10 Differences
+Final_data_diff <- cbind(Final_data[1:10,1],Final_data[1:10,2], Final_data.df1[1:10])
+Final_data_diff <- as.data.frame(Final_data_diff)
+#Replacing with suitable one
+colnames(Final_data_diff) = c("Year", "Crime Rate", "Difference Data")
+kable(Final_data_diff,
+      caption = 'First Differences of the Time Series')
+
+```
+
+**5. (10 points) Compute the sample autocorrelation function (ACF) and variogram of the first differences.**
+
+**Answer**
+
+```{r}
+#calculating ACF
+ACF_Final_data_dif1 <-acf(Final_data.df1, lag.max=25,type="correlation")
+
+#calculating Variogram
+x <- Final_data.df1
+lag_length <- length(x) /2
+lag_cheese <- 1:lag_length
+z <- variogram_func(x, lag_length)
+variogram_Final_data_dif1 <- z$vario
+
+#Table for ACF and Variogram
+ACF_dif1 <- ACF_Final_data_dif1$acf[1:10]
+Variogram_dif1 <- variogram_Final_data_dif1[1:10]
+Variogram_dif1 <- as.data.frame(Variogram_dif1)
+plot(variogram_Final_data_dif1, type="o", 
+     main="variogram_Final_data_dif1", pch=19,cex=.8, col="black" )
+Table_dif1 <- data.frame (
+  ACF_dif1,
+  Variogram_dif1
+)
+kable(Table_dif1,
+      caption = 'ACF with First Differences',
+      col.names = c('ACF D1', 'Variogram D1'))
+
+
+```
+
+
+**6. (5 points) What impact has differencing had on the time series?**
+
+**Answer**
+
+```{r}
+
+#Sample autocorrelation function of original data
+par(mfrow=c(2, 2))
+ACF_Final_data <-acf(Final_data[,2], 
+                     lag.max=25,type="correlation", 
+                     main="ACF of Original Data")
+#Sample autocorrelation function of first difference data
+ACF_Final_data_dif1 <-acf(Final_data.df1, lag.max=25,type="correlation",
+main="ACF of first difference data")
+
+
+#Variogram of Original data
+plot(variogram_Final_data, type="o", 
+     main="Variogram_original data", 
+     pch=19,cex=.8, col="black" )
+
+#Variogram of First Difference Data
+plot(variogram_Final_data_dif1, type="o", main="variogram_Final_data_dif1", pch=19,cex=.8, col="black" )
+
+
+
+```
+
+**7. Develop an appropriate exponential smoothing forecasting procedure for the firstdifferencing data by answer the questions below.**
+
+```{r}
+#Defining Smoothing Function
+firstsmooth <- function(y, lambda, start=y[1]) {     
+           ## here the initial value is set to the first y value
+          ytilde <- y
+          ytilde[1] <- lambda*y[1]+(1-lambda)*start
+          for (i in 2:length(y)) {
+              ytilde[i] <- lambda*y[i] + (1-lambda)*ytilde[i-1]
+          }
+  ytilde
+}
+## Defining Trigg leach smooth Function
+tlsmooth<-function(y,gamma,y.tilde.start=y[1],lambda.start=1){
+      T<-length(y)
+      #Initialize the vectors
+      Qt<-vector()
+      Dt<-vector()
+      y.tilde<-vector()
+      lambda<-vector()
+      err<-vector()
+      #Set the starting values for the vectors
+      lambda[1]=lambda.start
+      y.tilde[1]=y.tilde.start
+      Qt[1]<-0
+      Dt[1]<-0
+      err[1]<-0
+      for (i in 2:T){
+          err[i]<-y[i]-y.tilde[i-1]
+          Qt[i]<-gamma*err[i]+(1-gamma)*Qt[i-1]
+          Dt[i]<-gamma*abs(err[i])+(1-gamma)*Dt[i-1]
+          lambda[i]<-abs(Qt[i]/Dt[i])
+          y.tilde[i]=lambda[i]*y[i] + (1-lambda[i])*y.tilde[i-1]
+      }
+return(cbind(y.tilde,lambda,err,Qt,Dt))
+}
+
+##Function for measures of accuracy
+measacc.fs<- function(y,lambda){
+      out<- firstsmooth(y,lambda)
+      T<-length(y)
+#Smoothed version of the original is the one step ahead prediction
+#Hence the predictions (forecasts) are given as
+      pred<-c(y[1],out[1:(T-1)])
+      prederr<- (y - pred)
+      SSE<-sum(prederr*prederr)
+      MAPE<-100*sum(abs(prederr/y))/T
+      MAD<-sum(abs(prederr))/T
+      MSD<-sum(prederr*prederr)/T
+      ret1<-c(SSE,MAPE,MAD,MSD)
+      names(ret1)<-c("SSE","MAPE","MAD","MSD")
+      return(ret1)
+}
+
+```
+
+**a. (10 points) Assume the first-difference data is a constant process. For R user, use the HoltWinters() function to find the optimum value of Lamda to smooth the data. For JMP user, specify the Lamda given by the software.**
+
+**Answer**
+```{r}
+#Finding Out suitable Lamda Value for Low SSE
+lambda.vec<-seq(0.1, 0.9, 0.1)
+sse.mydata<-function(sc){measacc.fs(Final_data.df1,sc)[1]}
+sse.vec<-sapply(lambda.vec, sse.mydata)
+opt.lambda<-lambda.vec[sse.vec == min(sse.vec)]
+plot(lambda.vec, sse.vec, type="b", main = "SSE vs. lambda\n",
+xlab='lambda\n',ylab='SSE')
+abline(v=opt.lambda, col = 'red')
+mtext(text = paste("SSE min = ", 
+                   round(min(sse.vec),2), "\n lambda = ", 
+                   opt.lambda), side =1)
+
+#Fitted Data
+fit1 <- HoltWinters(Final_data.df1,alpha=0.3,beta=FALSE, gamma=FALSE)
+fit1
+```
+
+**b. (10 points) Show the fitted values and corresponding SSE by using the lamda obtained in part a.**
+
+```{r}
+
+Final_Data_fitted<-firstsmooth(y=Final_data.df1,lambda=0.6)
+data.frame(Final_Data_fitted)
+Final_Data_fitted.sse<- measacc.fs(Final_Data_fitted,0.6)
+kable(Final_Data_fitted.sse)
+```
+
+**c. (5 points) Plot the fitted values and original values in a same plot.**
+
+```{r}
+
+#First Difference Data
+Final_data_diff_all <- cbind(Final_data[,1],Final_data[,2], Final_data.df1)
+Final_data_diff_all <-as.data.frame(Final_data_diff_all)
+Final_data_diff_all$V2 <- NULL
+
+
+plot(Final_data_diff_all[1:T,2], type='p', pch=16, cex=1,xlim=c(1,23),xaxt='n',ylim=c(-100,200), 
+     xlab='Year',xaxt= 'n', ylab='Crime Rate', 
+     main= "Forcasted Crime Rate Data vs The Year")
+axis(1, seq(1,23,1), Final_data_diff_all[seq(1,23,1),1])
+points(1:21,Final_Data_fitted, lty =2, col= "blue")
+
+```
+
+
+**d. (5 points) Assume the first-difference data shows a trend. Calculate the SSE. You can get it from the HoltWinters() function. Then compare the SSE with that of obtained in part b. What can you tell from the comparison?**
+
+```{r}
+fit1_trending <- HoltWinters(Final_data.df1,alpha=0.3,beta=0.3, gamma=FALSE)
+fit1_trending$fitted
+fit1_trending$SSE
+```
+
+
+**e. (5 points) Suppose the first-difference is a constant process. Give the forecasts of the crime rate for years from 2006 to 2010.**
+
+**Answer**
+
+```{r}
+
+# Forecast Values
+lcpi<-0.6
+cpi.smooth1<-firstsmooth(y=Final_data_diff_all[1:22,2],lambda=lcpi)
+cpi.smooth2<-firstsmooth(y=cpi.smooth1,lambda=lcpi)
+cpi.hat<-2*cpi.smooth1-cpi.smooth2
+tau<-1:6
+T<-length(cpi.smooth1)
+cpi.forecast<-(2+tau*(lcpi/(1-lcpi)))*cpi.smooth1[T]-(1+tau*(lcpi/
+(1-lcpi)))*cpi.smooth2[T]
+ctau<-sqrt(1+(lcpi/((2-lcpi)^3))*(10-14*lcpi+5*(lcpi^2)+2*
+                                    tau*lcpi*(4-3*lcpi)+2*(tau^2)*(lcpi^2)))
+alpha.lev<-.05
+sig.est<- sqrt(var(Final_data_diff_all[2:22,2]- cpi.hat[1:21]))
+cl<-qnorm(1-alpha.lev/2)*(ctau/ctau[1])*sig.est
+
+
+#plot forecast model with prediction intervals
+plot(Final_data_diff_all[1:T,2], type='o', pch=16, cex=1,xlim=c(1,30),xaxt='n',ylim=c(-100,200), 
+     xlab='Year',xaxt= 'n', ylab='Crime Rate', 
+     main= "Forcasted Crime Rate Data vs The Year")
+axis(1, seq(1,29,1), Final_data_diff_all[seq(1,29,1),1])
+lines(23:28,cpi.forecast, lty =2, col= "blue")
+lines(23:28,cpi.forecast+cl, lty =4, col = "red")
+lines(23:28,cpi.forecast-cl, lty =6, col = "green")
+legend( x="topleft",
+        legend=c("Forecast","95% UPL","95% LPL"), 
+        col=c("blue","red","green"), lwd=.1, lty=c(2,4,6,NA), 
+        pch=c(NA,NA,NA,15), merge=FALSE, cex= 1)
+```
+
+
+**8. a. (10 points) Develop an appropriate ARIMA model and a procedure for forecasting for the crime rate data. Specify the model and estimated parameters in the model. Hint: You can use the auto.arima() and forecast() functions to answer this question. **
+
+**Answer**
+
+```{r}
+#Using auto.arima function
+Final_Dataset_AutoArimaModel<-auto.arima(Final_data[,2])
+Final_Dataset_AutoArimaModel
+Final_Dataset_AutoArimaModel_Forecast<-as.array(forecast(Final_Dataset_AutoArimaModel))
+kable(Final_Dataset_AutoArimaModel_Forecast)
+
+```
+
+**b. (5 points) Compare the AIC obtained from part a with that of obtained from ARIMA(0,1,0) model. Which model has a smaller AIC? What can you tell by this comparison?**
+
+**Answer**
+
+```{r}
+# AR(1) model create with code ARIMA (0,1,0)
+Final_data.arima<-arima(Final_data[,2],order=c(0, 1, 0))
+Final_data.arima
+
+```
+
+
+**c. (5 points) Show the 1- to 5- step ahead forecasts and corresponding 95% prediction intervals for the crime rate. Show only the results/outputs. Calculation process or formula are not required.**
+
+**Answer**
+
+```{r}
+plot(Final_data[,2],type="o",pch=19,cex=0.8,
+     xlab='Year',xaxt= 'n', ylab='Crime Rate',
+     xlim=c(1,28),xaxt='n', ylim=c(0,1000), 
+     main= "Forecasted Crime Rate Data vs The Year")
+axis(1, seq(1,27,1), Final_data[seq(1,27,1),1])
+lines(Final_Dataset_AutoArimaModel_Forecast$mean,col="blue", lty= 2)
+lines(Final_Dataset_AutoArimaModel_Forecast$upper[,2], col="red", lty= 4)
+lines(Final_Dataset_AutoArimaModel_Forecast$lower[,2], col="green",lty= 6)
+legend( x="bottomleft",
+        legend=c("Forecast","95% UPL","95% LPL"), 
+        col=c("blue","red","green"), lwd=.1, lty=c(2,4,6,NA), 
+        pch=c(NA,NA,NA,15), merge=FALSE, cex= .7 )
+
+```
