@@ -1,0 +1,269 @@
+---
+title: "| STAT 560: Time Series Analysis \n| Homework 4 (Chapter 3)\n"
+author: "Md Mominul Islam, ID: 101009250"
+date: 'Date: 10/05/2020'
+output:
+  word_document: default
+  fig_caption: yes
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r, include=FALSE}
+# *************************Installation packages and load data********************************
+# Installed packages
+
+# install.packages("readxl")
+# install.packages("ggplot2") # I already have ggplot2, if you haven't yet packages then run this code by erasing hass at begaining 
+
+library(ggplot2)
+library(readxl)
+
+# Set directory for data file
+
+# load data Table B.4 for Exercise 2.2
+wine.data <- read.csv("C:/Users/md.mominul.islam/Desktop/TIME SERIES/HomeWork/HW 4/wine.csv",header=T,row.names=NULL,sep=",")
+
+# change data format as data frame
+wine.data <- as.data.frame(wine.data)
+
+colnames(wine.data) # Check the column name then replaced with suitable one
+#*********************************************************************************************
+```
+
+
+### Exercise 3.7
+The quality of Pinot Noir wine is thought to be related to the properties of clarity, aroma, body, flavor, and oakiness. Data for 38 wines are given in Table E3.4.
+
+
+
+a.	Fit a multiple linear regression model relating wine quality to these predictors. Do not include the “Region” variable in the model.
+Answer:
+
+# linear regression model
+wine_quality.fit <- lm(y ~ x1+x2+x3+x4+x5, data= wine.data)
+where x1=Clarity, x2=Arpma, x3=Body, x4=Flavor, x5 = oakiness
+And coefficient beta values are given below:
+(Intercept)          x1          x2          x3          x4          x5 
+  3.9968648   2.3394535   0.4825505   0.2731612   1.1683238  -0.6840102 
+
+where x1=Clarity, x2=Arpma, x3=Body, x4=Flavor, x5 = oakiness
+
+```{r, echo=FALSE, message=FALSE, fig.cap="Figure 1: Linear regression model for the quality of wine data. The red dot line shows the fitted regression line.", fig.align='center'}
+
+# linear regression model
+wine_quality.fit <- lm(y ~ x1+x2+x3+x4+x5, data= wine.data)
+
+# where x1=Clarity, x2=Arpma, x3=Body, x4=Flavor, x5 = oakiness
+
+summary(wine_quality.fit)
+# Other useful functions 
+coefficients(wine_quality.fit) # model coefficients
+plot(wine_quality.fit)
+nrow(wine.data)
+
+```
+
+
+
+
+
+
+b.	Test for significance of regression. What conclusions can you draw? 
+
+```{r, echo=FALSE, include=FALSE}
+summary(wine_quality.fit)
+anova(wine_quality.fit)
+```
+
+Discussion:From F-statistic, we got 16.51 on 5 and 32 DF and the p-value: 4.703e-08 which is less than 0.05.So that the null hypothesis is rejected. Therefore there is a significant relation with wine quality and predictor and we can conclude that there is a strong relationship within the wine quality and the predictor variables. Moreover the R-squared:  0.7206 and Adjusted R-squared:  0.6769 values are pretty close which is a clear indication that, this model is good. Also by doing anova analysis above, we can say that the predictors are also significant except x1.
+
+
+c.	Use t-tests to assess the contribution of each predictor to the model. Discuss your findings.
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   3.9969     2.2318   1.791 0.082775 .  
+x1            2.3395     1.7348   1.349 0.186958    
+x2            0.4826     0.2724   1.771 0.086058 .  
+x3            0.2732     0.3326   0.821 0.417503    
+x4            1.1683     0.3045   3.837 0.000552 ***
+x5           -0.6840     0.2712  -2.522 0.016833 *  
+
+
+From the the t-tests results as listed above for each predictor, it can be concluded that the predictr x4 and x5 produce the p-value less than 0.05 and there is a significant relation with predictor x4 and x5 with wine quality. For other predictor shows non significant relation with wine quality.In addition, we know that each variable needs to be greater than the critical value, t0.05,30 = 1.310. The absolute value of the variable x3 is less than the critical value so we can say in conclusion that x3 is not significant based on the t-test.
+
+d.	Analyze the residuals from this model. Is the model adequate?
+
+
+```{r, echo=FALSE, fig.cap="Figure: Liner model's residual plot for The quality of Pinot Noir wine ", fig.align='center'}
+par(mfrow=c(2,2),oma=c(0,0,0,0))
+qqnorm(wine_quality.fit$res,datax=TRUE,pch=16,xlab="Residual", main=" ")
+qqline(wine_quality.fit$res,datax=TRUE)
+plot(wine_quality.fit$fit, wine_quality.fit$res,pch=16, xlab="Fitted Value",ylab="Residual")
+abline(h=0)
+hist(wine_quality.fit$res,col="gray",xlab="Residual",main=" ")
+plot(wine_quality.fit$res,type="l",xlab="Observation Order",ylab="Residual")
+points(wine_quality.fit$res,pch=16,cex=.5)
+abline(h=0)
+
+```
+Discussion: If we look at the figure at the top left, normal probability plot is following a straight line and from histogram it is cleared that data is somewhat looks like they are normally distributed.
+Residual vs Fitted used to detect nonlinearity  between the variables and from the figure at the top right corner, we can say that residuals are randomly distributed which is non-linear.From the  residuals vs observations order: where we are looking for no patterns but looking at the residual vs observation order plot, there are some positive residual until 15 but negative till 30 which may indicate that there may some serial correlation which we do not expect in our model.
+
+e.	Calculate R2 and the adjusted R2 for this model. Compare these values to the R2 and adjusted R2 for the linear regression model relating wine quality to only the predictors “Aroma” and “Flavor.” Discuss your results.
+
+Answer: 
+For full model, the R-squared:  0.7206,	Adjusted R-squared:  0.6769 
+
+For linear regression model with Aroma and Flavor, the R-squared:  0.6586,	Adjusted R-squared:  0.639 
+
+Discussion: the new model does not improve the prediction capability of the model as both R-square and adjusted R-square values are small then the full model. It suggested that we should include more predictor or different set of predictor to improve our liner regression model.
+
+```{r,echo=FALSE, include=FALSE}
+
+# linear regression model
+wine_quality.fit <- lm(y ~ x1+x2+x3+x4+x5, data= wine.data)
+
+summary(wine_quality.fit)
+
+#where x1=Clarity, x2=Arpma, x3=Body, x4=Flavor, x5 = oakiness
+
+# linear regression model with only Aroma and Flavor
+wine_quality.fit2 <- lm(y ~ x2+x4, data= wine.data)
+summary(wine_quality.fit2)
+
+
+```
+
+
+
+
+
+f.	Find a 95% CI for the regression coefficient for “Flavor” for both models in part e. Discuss any differences.
+
+For full model, the coefficient of predictor Flavor's (x4) 95% confidence intervals are 0.54811681 to 1.7885307.
+
+
+For redueced model, the coefficient of predictor Flavor's (x4) 95% confidence intervals are 0.58032952 1.760003
+
+
+```{r, echo=FALSE, include=FALSE}
+#intervals(wine_quality.fit)
+#intervals(wine_quality.fit2)
+
+
+confint(wine_quality.fit) # confidence interval for full model's coefficient
+
+confint(wine_quality.fit2) # confidence interval for reduced model's coefficient
+```
+
+
+Exercise 3.26
+Consider the wine quality data in Exercise 3.7. Use variable selection techniques to determine an appropriate regression model for these data.
+
+Answer:
+
+For the variable selection method, we have used forward selection method and find the following step from R-studio.
+
+Start:  AIC=55.37
+y ~ 1
+
+       Df Sum of Sq     RSS    AIC
++ x4    1    96.615  58.173 20.182
++ x2    1    77.442  77.347 31.007
++ x3    1    46.603 108.186 43.758
+<none>              154.788 55.370
++ x5    1     0.343 154.446 57.286
++ x1    1     0.125 154.663 57.339
+
+Step:  AIC=20.18
+y ~ x4
+
+       Df Sum of Sq    RSS    AIC
++ x5    1    5.7174 52.456 18.251
++ x2    1    5.3212 52.852 18.537
+<none>              58.173 20.182
++ x1    1    1.4286 56.745 21.237
++ x3    1    0.3803 57.793 21.933
+
+Step:  AIC=18.25
+y ~ x4 + x5
+
+       Df Sum of Sq    RSS    AIC
++ x2    1    6.6026 45.853 15.139
++ x1    1    2.9416 49.514 18.058
+<none>              52.456 18.251
++ x3    1    0.5356 51.920 19.861
+
+Step:  AIC=15.14
+y ~ x4 + x5 + x2
+
+       Df Sum of Sq    RSS    AIC
+<none>              45.853 15.139
++ x1    1   1.69358 44.160 15.709
++ x3    1   0.14769 45.706 17.016
+
+
+
+
+Base on the above step and we find that regression model with x4, x5 and x2 generates less AIC value compare to others combinations. Therefore the appropriate model for the wine quality will be 
+y ~ x4 + x5 + x2
+
+Coefficients and R-square values are given below-
+
+(Intercept)          x2          x4          x5 
+  6.4671948   0.5801203   1.1996928  -0.6023247 
+
+Multiple R-squared:  0.7038,	Adjusted R-squared:  0.6776 
+
+
+
+```{r, echo=FALSE, include=FALSE}
+wine.data.fit2 <- lm(y~ 1, data= wine.data)
+step.for <- step(wine.data.fit2, direction = "forward", scope = ~ x1+x2+x3+x4+x5)
+```
+
+
+
+```{r}
+wine.data.fit3 <- lm(y ~ x2+x4+x5, data= wine.data)
+summary(wine.data.fit3)
+coefficients(wine.data.fit3) # model coefficients
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
