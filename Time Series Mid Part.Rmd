@@ -1,0 +1,308 @@
+---
+title: "| STAT 560: Time Series Analysis \n| Mid Term Exam \n"
+author: "Md Mominul Islam, ID: 101009250"
+date: 'Date: 10/15/2020'
+output:
+  word_document: default
+  fig_caption: yes
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r, include=FALSE, message=FALSE}
+# *************************Installation packages and load data********************************
+# install.packages("readxl")
+# install.packages("ggplot2") 
+#install.packages("styler")
+#install.packages("Rtools")
+
+library(ggplot2)
+library(readxl)
+library (styler)
+
+# Set directory for data file
+baseball_data <- read_excel("C:/Users/md.mominul.islam/Desktop/TIME SERIES/HomeWork/Midterm/Midtest_Data.xlsx")
+baseball.data <- as.data.frame(baseball_data) # change data format as data frame
+colnames(baseball.data) # Check the column name then replaced with suitable one
+colnames(baseball.data) = c("Observation", "Year", "Win", "Runs","Batting","Doubleplays","Walk","Strikeout") # column name changed into a small and suitable one, which is easy to type in coding
+attach(baseball.data)
+#*********************************************************************************************
+```
+
+### Problem 1:
+1. Using forward selection method to fit the best multiple linear regression model (AICc) for the response variable win. Do not take the variable year into your predictor variable.
+
+```{r, echo=T, message=FALSE}
+#forward selection method to fit the best multiple linear regression model
+baseball.fit <- lm (Win ~ 1 , data= baseball.data) 
+step.for <- step(baseball.fit, direction = "forward", scope = ~ Runs+Batting+Doubleplays+Walk+Strikeout)
+```
+
+
+
+```{r, echo=T, message=FALSE}
+# linear regression model
+baseball.fit1 <- lm (Win ~ Runs + Batting + Doubleplays + Walk + Strikeout, data= baseball.data) 
+# where runs=The number of runs scored by the team, ba =  The team's overall batting average
+# dp=The total number of double plays, walk = The number of walks given to the other teamArpma, so = The number of strikeouts by the team's pitchers
+summary(baseball.fit1)
+coefficients(baseball.fit1)
+```
+
+Finally, the appropriate fit model base on this data is 
+Win = -0.2776752+ 0.0002778312(Runs)+ 1.7419994841(Batting) + 0.0007370206(Doubleplays) -0.0005897050(Walk)+
+0.0003461112(Strikeout)
+
+having multiple R-squared: 0.9925 and Adjusted R-squared: 0.9921.
+
+
+###Problem 2
+2. Discuss the significance of your fitted model. Your interpretation should include the test statistic and the p-value.
+
+Answer:
+
+```{r, echo=T, include=TRUE}
+summary(baseball.fit1)
+```
+
+From F-statistic, we got 12.41 on 5 and 34 DF and the p-value:6.856e-07 which is less than 0.05.So that the null hypothesis is rejected. Therefore there is a significant relation with win and predictors.So, the linear regression model is significant. Moreover, the value of Multiple R-squared: 0.646 and Adjusted R-squared: 0.594 values are pretty close which indicates a good liner relation with predicors.
+
+###Problem 3
+3. Use t-tests to assess the contribution of each predictor to the model. Discuss your findings.
+
+Answer:
+Coefficients with t-values are mentioned below:
+
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)    
+(Intercept) -0.2776752  0.1913151  -1.451  0.15583    
+Runs         0.0002778  0.0001466   1.895  0.06659 .  
+Batting      1.7419995  0.9284706   1.876  0.06923 .  
+Doubleplays  0.0007370  0.0004502   1.637  0.11084    
+Walk        -0.0005897  0.0001292  -4.566 6.23e-05 ***
+Strikeout    0.0003461  0.0001044   3.315  0.00219 ** 
+
+From the the t-tests results as listed above for each predictor, it can be concluded that the predictr 'Walk' and 'Strikeout' coefficients has produced the p-value less than 0.05. So that, there is a significant relation with predictor 'Walk' and 'Strikeout' with the 'Win'. For other predictor shows non significant relation with 'Win' as the p-values are greater than 0.05.
+
+###Problem 4
+
+4. Give the 95% confidence interval (CI) for the wins for the year=1965, runs=707, ba=0.254, dp=152, walk=467, sa=916. Your answer must include the formula for calculating the CI. (You do not have to use all the values if your best model does not contain the corresponding variables.)
+
+Answer:
+
+```{r, echo=T, include=TRUE}
+# Confidence intervals (by default 95%)
+confint(baseball.fit1, level= 0.95 ) # confidence interval for full model's coefficient
+# confidence interval for a specific model's coefficient:
+new <- data.frame(Year=1965, Runs= 707,Batting = 0.254,Doubleplays=152,Walk=467,Strikeout = 916)
+
+pred.win1.clim<-predict(baseball.fit1, newdata = new, se.fit = TRUE, interval = "confidence")
+pred.win1.clim$fit
+#prediction interval for a specific set of data:
+pred.win1.plim<-predict(baseball.fit1, newdata = new, se.fit = TRUE, interval = "prediction")
+pred.win1.plim$fit
+```
+With 95% confidence interval, we can be 95% confident that the confidence interval contains the population mean for the specified values of the variables in the model where the lower limit is 0.4904402 and the upper limit is 0.5393441.
+
+###Problem 5:
+5. Give the 95% prediction interval (PI) for the wins for the year=1965, runs=707, ba=0.254,
+dp=152, walk=467, sa=916. Your answer must include the formula for calculating the PI. (You
+do not have to use all the values if your best model does not contain the corresponding
+variables.)
+
+Answer:
+
+```{r}
+#prediction interval for a specific set of data:
+pred.win1.plim<-predict(baseball.fit1, newdata = new, se.fit = TRUE, interval = "prediction")
+pred.win1.plim$fit
+```
+With 95% prediction bands, the prediction interval indicates that we can be 95% confident that the actual value will be between approximately 0.4210802 and 0.6087041.
+. 
+###Problem 6:
+6. Compare the results from part 4 and part 5. Which interval has a longer interval length? Explain the reason.
+From the results, we can see that The prediction interval is wider than the corresponding confidence interval.The reason is, prediction intervals must account for both the uncertainty in estimating the population mean, plus the random variation of the individual values. As we have tried to predict where a new observation will be & that new observation has an additional standard deviation of the error term. Confidence intervals are based on only the fitted values & do not involve making a prediction. It represents the uncertainty in the "fitted' value.
+So a prediction interval is always wider than a confidence interval. Also, the prediction interval will not converge to a single value as the sample size increases. 
+
+
+###problem 7
+7. Let lag=15, calculate the Sample ACF, the corresponding Z-Statistic, and Ljung-Box Statistic. The output should be similar to the Table 2.3 on page 71 in the textbook. The values of ACF, Z-statistic, and Ljung-Box statistic are needed. Is there an indication of non-stationary behavior in the residuals?
+
+```{r}
+ACF<-acf(baseball.data[,3],lag.max=15,type="correlation", plot =FALSE)
+QLB <- 0
+for (K in 0:16){
+  T <- dim(baseball.data)[1]
+  QLB[K] <- T*(T+2)*sum((1/(T-1:K))*(ACF$acf[2:(K+1)]^2))
+}
+QLB.mat <- as.matrix(QLB)
+
+Table <- as.data.frame(ACF$lag)
+Table$Lag <- ACF$acf
+
+z.test <- ACF$acf[0:16]
+z.test.mat <-as.matrix(z.test)
+
+#colnames(Table)
+colnames(Table) <- c("Lag", "ACF")
+#colnames(Table)
+Table$LjungTest <- QLB.mat[,1]
+Table$Ztest <- z.test.mat[,1]
+Table
+```
+As from the table, we have seen that, time series can be said as weakly stationary.
+
+###Problem 8
+8. Let the lag=15, calculate the variogram of the wins. What can you tell from the
+variogram?
+
+```{r}
+#Defining variogram function
+variogram <- function(x, lag){ 
+  Lag <- NULL 
+vark <- NULL 
+vario <- NULL
+for (k in 1:lag){ 
+Lag[k] <- k
+vark[k] = sd(diff(x,k))^2 
+vario[k] = vark[k]/vark[1] 
+} 
+return(as.data.frame(cbind(Lag,vario))) 
+} 
+
+#Variogram of  original baseball data
+y_win <- as.matrix(baseball.data[, 3])
+lag_length <-15
+lag_readings <- 1:lag_length
+vario_win <- variogram(y_win, lag_length)
+vario_win
+plot(vario_win, type="o",col = 'dark red', main="Variogram of the Wins", pch=19,cex=.8 )
+points(vario_win ,pch=16,cex=.8)
+
+```
+Interpretaion:
+As from the variogram data, we may say that variogram values varies almost around a constant number except 10th observation. So we can say, the data is weakly stationary.
+
+###Problem 9
+9. Plot the 4 in 1 residual plots (QQ plot, Fitted value vs Residual, Histogram of Residual,
+and Observation order vs Residual) and interpret the graphs. The graphs should be similar to
+Figure 3.1 on page 138 in the textbook.
+
+```{r}
+par(mfrow=c(2,2), oma = c(0,0,0,0))
+qqnorm(baseball.fit1$res, datax = TRUE,pch=16, xlab='Residual',main='Residual vs Quantiles')
+qqline(baseball.fit1$res, datax = TRUE)
+plot(baseball.fit1$fit, baseball.fit1$res, pch =16, xlab='Fitted value', ylab='Residual', main = 'Residual vs Fitted')
+abline(h=0)
+hist(baseball.fit1$res,col='red', xlab = 'Residual', main='Histogram')
+plot(baseball.fit1$res, type='l',xlab='Observation', ylab = 'Residual' )
+points(baseball.fit1$res, pch=16, cex=0.5)
+abline(h=0)
+#part(a): normal probability plot from which we are looking for a straight line
+#part(c): histogram: Looking for a normal shape
+#part(b):Residual vs Fitted: used to detect nonlinearity  between the variables
+#part(d): residuals vs observations order: where we are looking for no patterns
+```
+Interpretation:
+From the above plot of sample quantiles, we can see that the residuals follow normal distribution. Similarly,scatter plot of residuals are described by fitted value and observation order plot. Histogram also shows that, residuals are normally distributed. From the Residual vs Fitted curve: we can say that there is no linearity between the variables. Furthermore, the residual plot above shows the residuals’ distribution, noramlity and skewneses of model.Also, from the residuals vs observations order: we have seen that there is no patterns.
+
+###Problem 10
+10. Discuss the model adequate by analyzing the residuals. Your output should be similar
+to the table 3.7 on page 141 in the textbook. Based on your outputs, answer the following
+questions: Are there any outliers? High leverage observations? High influential observations?
+Use criterions given in the textbook.
+
+```{r}
+library(styler)
+nrow <- dim(baseball_data)[1]
+baseball.mat <- as.matrix(baseball_data)
+
+baseball.residual <- cbind(matrix(1, nrow, 1), baseball.mat[, 3:8])
+res.fun <- function(data) {
+data <- as.matrix(data)
+n <- nrow(data)
+p <- ncol(data) - 1
+X <- data[, -ncol(data)] # Predictors/ regressor matrix / independant variables
+hat.mat <- X %*% solve(t(X) %*% X) %*% t(X) # hat matrix
+y <- data[, ncol(data)] # Response variable / dependant variable
+reg <- lm(y ~ X) # Linear regression model
+sum.reg <- summary(reg)
+CI.coef <- confint(reg, level = .95)
+e.i <- reg$residuals # Residuals
+sigma.hat <- sigma(reg) # estimator of standard deviation/ sqrt(MSE)
+d.i <- e.i / sigma.hat # d_i / Standardized Residuals
+h.ii <- diag(hat.mat)
+r.i <- e.i / sigma.hat / sqrt(1 - h.ii) # r_i / Studentized residuals
+PRESS <- sum((e.i / (1 - h.ii))^2) # Prediction Error Sum of Squares
+anova.sat <- anova(reg) # ANOVA to obtain SST, SSE.
+R.2.pred <- 1 - PRESS / sum(anova.sat$`Sum Sq`) # R squared for prediction
+S.2.i <- (((n - p) * anova.sat$`Mean Sq`[2]) - e.i^2 / (1 - h.ii)) / (n - p - 1)
+t.i <- e.i / sqrt(S.2.i * (1 - h.ii)) # R-Student
+index.leverage <- which(h.ii > 2 * p / n) # Return index of the high leverage observations
+high.leverage <- h.ii[h.ii > 2 * p / n] # Return the h.ii values for high leverage
+cook.dis <- cooks.distance(reg) # Return the cook's distance
+index.inf <- which(cook.dis > 1)
+inf.out <- cook.dis[cook.dis > 1]
+Sati <- as.data.frame(cbind(
+round(e.i, 3), # Combine all statistics into a data frame
+round(r.i, 3),
+round(t.i, 3),
+round(h.ii, 3),
+round(cook.dis, 3)
+))
+names(Sati) <- c(
+"Residuals",
+"Studentized Residuals", "R-Student", "h_ii", "Cook's Distance"
+)#
+print(cbind(e.i, r.i, t.i, h.ii,cook.dis))
+names(PRESS) <- c("PRESS")
+names(R.2.pred) <- c("Prediction R-squared")
+leverage <- as.data.frame(cbind(index.leverage, high.leverage))
+names(leverage) <- c("High-leverage-index", "h_ii")
+influ <- as.data.frame(cbind(index.inf, inf.out))
+names(influ) <- c("Influential-outlier-index", "cook's distance")
+mylist <- list(sum.reg$coefficients, Sati, PRESS, R.2.pred, leverage, influ, CI.coef)
+return(mylist)
+}
+res.fun(baseball.residual)
+```
+
+```{r}
+# Residual Plots.
+# To use this function, make sure your data satisfies the following conditions:
+# 1. The first column is 1's vector.
+# 2. The last column is the response variable (y).
+# 3. The other columns are independant variables (X) which are involved in the regression model.
+resid.plot <- function(data) {
+data <- as.matrix(data)
+X <- data[, -ncol(data)] # Predictors/ regressor matrix / independant variables
+y <- data[, ncol(data)] # Response variable / dependant variable
+fit.data <- lm(y ~ X)
+par(mfrow = c(2, 2), oma = c(0, 0, 0, 0))
+qqnorm(fit.data$residuals, datax = T, pch = 16, xlab = "Residual", main = "")
+qqline(fit.data$residuals, data = T)
+plot(fit.data$fitted.values, fit.data$residuals, pch = 16, xlab = "Fitted Value", ylab = "Residual")
+abline(h = 0)
+hist(fit.data$residuals, col = "grey", xlab = "Residual", main = "")
+plot(fit.data$residuals, type = "l", xlab = "Observation Order", ylab = "Residual")
+points(fit.data$residuals, pch = 16, cex = .5)
+abline(h = 0)
+}
+```
+
+```{r}
+win.mat <- as.matrix(baseball_data)
+resid.plot(win.mat[ ,3:8])
+```
+Interpretation:
+a.From the above plot of sample quantiles, we can see that the residuals follow normal distribution.The residuals lie generally along a straight line, so there is no obvious reason to be concerned with the normality assumption.Any observation with a standardized residual outside this interval −3 ≤ di ≤ 3 is a potential outlier.From the table, we did not see any outliers. 
+
+b. There is one high leverage point above 100th sample which can be defined as an extreme predictor X-values.Absolute values of the studentized residuals that are larger than three or four indicate potentially problematic observations.But form the table, we have seen no presence of such values.
+
+c. Most of the time, ti will be closed to ri. However, for influential observation, they can differ significantly.As we see that all of the values of ti are much closer to the values of ri. So, there is no influential points.
+
+
+The Normal probability plots of residuals does not violate the normality assumption.Here, the value of Prediction R-squared is 0.2466781. So the model would be adequate to explain 24.667% of the variability in the new data.
+
+These outputs indicate that the model is not adequate.
